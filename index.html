@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Calculator — Search & Execute</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:Arial,"Segoe UI",sans-serif}
+  body{min-height:100vh;background:linear-gradient(135deg,#1e3c72,#2a5298);color:#fff;
+    display:flex;justify-content:center;align-items:flex-start;padding:30px 14px}
+  .wrapper{width:100%;max-width:920px;background:rgba(0,0,0,.28);border-radius:14px;
+    padding:24px 26px 30px;box-shadow:0 12px 30px rgba(0,0,0,.35)}
+  .title{text-align:center;margin-bottom:18px}
+  .title h1{font-size:27px;margin-bottom:6px}
+  .title p{font-size:13px;opacity:.9}
+  /* search */
+  .search{display:flex;justify-content:center;margin:14px 0 22px}
+  .search input{width:100%;max-width:420px;padding:11px 16px;border:none;border-radius:999px;
+    font-size:14px;background:rgba(255,255,255,.14);color:#fff;outline:none}
+  .search input::placeholder{color:#dbe4ff}
+  /* cards */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px}
+  .card{background:rgba(255,255,255,.12);border-radius:10px;padding:16px 18px;text-align:left;
+    color:#fff;box-shadow:0 8px 18px rgba(0,0,0,.25);cursor:pointer;border:1px solid transparent;
+    transition:.15s}
+  .card:hover{background:rgba(255,255,255,.18);transform:translateY(-2px);border-color:#ffe082}
+  .card h2{font-size:18px;margin-bottom:6px;color:#ffe082}
+  .card p{font-size:13px;line-height:1.4}
+  .tag{display:inline-block;margin-top:8px;padding:2px 8px;border-radius:999px;
+    background:rgba(0,0,0,.35);font-size:11px;color:#ffecb3}
+  .hidden{display:none}
+  /* panel */
+  .panel{background:rgba(255,255,255,.1);border-radius:12px;padding:20px 22px;margin-top:6px}
+  .panel .back{background:none;border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;
+    padding:6px 12px;font-size:13px;cursor:pointer;margin-bottom:16px}
+  .panel .back:hover{background:rgba(255,255,255,.15)}
+  .panel h2{color:#ffe082;margin-bottom:14px;font-size:21px}
+  .row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:14px}
+  .field{flex:1;min-width:130px}
+  label{display:block;font-size:12px;opacity:.85;margin-bottom:5px}
+  input[type=number],input[type=text],select{width:100%;padding:10px 12px;border:none;border-radius:8px;
+    font-size:14px;background:rgba(255,255,255,.92);color:#10233f;outline:none}
+  .result{background:rgba(0,0,0,.3);border-radius:10px;padding:14px 16px;margin-top:8px;
+    font-size:16px;min-height:22px}
+  .result b{color:#ffe082}
+  .muted{font-size:12px;opacity:.8;margin-top:10px}
+  /* scientific keypad */
+  .keys{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:12px}
+  .keys button{padding:12px 0;border:none;border-radius:8px;font-size:15px;cursor:pointer;
+    background:rgba(255,255,255,.16);color:#fff}
+  .keys button:hover{background:rgba(255,255,255,.28)}
+  .keys button.op{background:rgba(255,224,130,.25);color:#ffe082}
+  .keys button.eq{background:#ffe082;color:#10233f;font-weight:700}
+  .keys button.fn{font-size:13px}
+  footer{margin-top:22px;text-align:center;font-size:11px;opacity:.85}
+  footer a{color:#ffe082}
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="title">
+    <h1>Calculator Search &amp; Execution System</h1>
+    <p>Search a category, then run the calculation — all in your browser.</p>
+  </div>
+
+  <!-- SEARCH -->
+  <div class="search">
+    <input id="search" type="text" placeholder="🔍 Search: temperature, currency, length, sin…" oninput="filterCards()">
+  </div>
+
+  <!-- MENU -->
+  <div id="menu" class="grid">
+    <div class="card" data-keys="temperature celsius fahrenheit kelvin temp heat" onclick="openCalc('temperature')">
+      <h2>Temperature</h2><p>Convert between Celsius, Fahrenheit and Kelvin.</p>
+      <div class="tag">C · F · K</div>
+    </div>
+    <div class="card" data-keys="currency money inr usd eur gbp jpy rupee dollar" onclick="openCalc('currency')">
+      <h2>Currency</h2><p>Convert between INR, USD, EUR, GBP and JPY.</p>
+      <div class="tag">INR · USD · EUR · GBP · JPY</div>
+    </div>
+    <div class="card" data-keys="unit length mass weight time meter km kg gram hour" onclick="openCalc('units')">
+      <h2>Unit Conversion</h2><p>Length, mass and time conversions.</p>
+      <div class="tag">m · kg · hr</div>
+    </div>
+    <div class="card" data-keys="scientific math sin cos tan log power sqrt trig" onclick="openCalc('scientific')">
+      <h2>Scientific</h2><p>Trigonometric, logarithmic and power functions.</p>
+      <div class="tag">sin · cos · log · xⁿ</div>
+    </div>
+  </div>
+
+  <!-- ===== TEMPERATURE ===== -->
+  <div id="temperature" class="panel hidden">
+    <button class="back" onclick="goHome()">← Back</button>
+    <h2>Temperature Converter</h2>
+    <div class="row">
+      <div class="field"><label>Value</label><input id="t_val" type="number" value="100" oninput="calcTemp()"></div>
+      <div class="field"><label>From</label>
+        <select id="t_from" onchange="calcTemp()"><option>Celsius</option><option>Fahrenheit</option><option>Kelvin</option></select></div>
+      <div class="field"><label>To</label>
+        <select id="t_to" onchange="calcTemp()"><option>Fahrenheit</option><option>Celsius</option><option>Kelvin</option></select></div>
+    </div>
+    <div class="result" id="t_out">—</div>
+  </div>
+
+  <!-- ===== CURRENCY ===== -->
+  <div id="currency" class="panel hidden">
+    <button class="back" onclick="goHome()">← Back</button>
+    <h2>Currency Converter</h2>
+    <div class="row">
+      <div class="field"><label>Amount</label><input id="c_val" type="number" value="1000" oninput="calcCurr()"></div>
+      <div class="field"><label>From</label><select id="c_from" onchange="calcCurr()"></select></div>
+      <div class="field"><label>To</label><select id="c_to" onchange="calcCurr()"></select></div>
+    </div>
+    <div class="result" id="c_out">—</div>
+    <div class="muted">Note: indicative fixed rates (base USD) for demo use — not live market rates.</div>
+  </div>
+
+  <!-- ===== UNITS ===== -->
+  <div id="units" class="panel hidden">
+    <button class="back" onclick="goHome()">← Back</button>
+    <h2>Unit Conversion</h2>
+    <div class="row">
+      <div class="field"><label>Category</label><select id="u_cat" onchange="buildUnits()"><option>Length</option><option>Mass</option><option>Time</option></select></div>
+      <div class="field"><label>Value</label><input id="u_val" type="number" value="1" oninput="calcUnit()"></div>
+      <div class="field"><label>From</label><select id="u_from" onchange="calcUnit()"></select></div>
+      <div class="field"><label>To</label><select id="u_to" onchange="calcUnit()"></select></div>
+    </div>
+    <div class="result" id="u_out">—</div>
+  </div>
+
+  <!-- ===== SCIENTIFIC ===== -->
+  <div id="scientific" class="panel hidden">
+    <button class="back" onclick="goHome()">← Back</button>
+    <h2>Scientific Calculator</h2>
+    <div class="field"><input id="s_expr" type="text" placeholder="e.g. sin(45) + sqrt(16) * 2" oninput="calcSci()"></div>
+    <div class="result" id="s_out" style="margin-top:12px">—</div>
+    <div class="muted">Angles in degrees. Functions: sin cos tan asin acos atan log ln sqrt abs pow; constants pi, e.</div>
+    <div class="keys">
+      <button class="fn" onclick="ins('sin(')">sin</button>
+      <button class="fn" onclick="ins('cos(')">cos</button>
+      <button class="fn" onclick="ins('tan(')">tan</button>
+      <button class="fn" onclick="ins('log(')">log</button>
+      <button class="fn" onclick="ins('ln(')">ln</button>
+      <button onclick="ins('7')">7</button><button onclick="ins('8')">8</button><button onclick="ins('9')">9</button>
+      <button class="op" onclick="ins('/')">÷</button><button class="fn" onclick="ins('sqrt(')">√</button>
+      <button onclick="ins('4')">4</button><button onclick="ins('5')">5</button><button onclick="ins('6')">6</button>
+      <button class="op" onclick="ins('*')">×</button><button class="fn" onclick="ins('^')">xⁿ</button>
+      <button onclick="ins('1')">1</button><button onclick="ins('2')">2</button><button onclick="ins('3')">3</button>
+      <button class="op" onclick="ins('-')">−</button><button class="fn" onclick="ins('pi')">π</button>
+      <button onclick="ins('0')">0</button><button onclick="ins('.')">.</button><button onclick="ins('(')">(</button>
+      <button onclick="ins(')')">)</button><button class="op" onclick="ins('+')">+</button>
+      <button onclick="clearSci()">C</button><button onclick="backSci()">⌫</button>
+      <button class="eq" style="grid-column:span 3" onclick="calcSci()">=</button>
+    </div>
+  </div>
+
+  <footer>Calculator Search &amp; Execution System · built by
+    <a href="https://github.com/Purva9665" target="_blank" rel="noopener">Purva Kadam</a></footer>
+</div>
+
+<script>
+/* ---------- navigation + search ---------- */
+const panels = ['temperature','currency','units','scientific'];
+function openCalc(id){
+  document.getElementById('menu').classList.add('hidden');
+  document.querySelector('.search').classList.add('hidden');
+  panels.forEach(p=>document.getElementById(p).classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+  if(id==='temperature')calcTemp(); if(id==='currency')calcCurr();
+  if(id==='units'){buildUnits();} if(id==='scientific')document.getElementById('s_expr').focus();
+}
+function goHome(){
+  panels.forEach(p=>document.getElementById(p).classList.add('hidden'));
+  document.getElementById('menu').classList.remove('hidden');
+  document.querySelector('.search').classList.remove('hidden');
+}
+function filterCards(){
+  const q=document.getElementById('search').value.toLowerCase().trim();
+  document.querySelectorAll('#menu .card').forEach(c=>{
+    c.style.display = (!q || c.dataset.keys.includes(q) || c.textContent.toLowerCase().includes(q)) ? '' : 'none';
+  });
+}
+
+/* ---------- temperature ---------- */
+function toC(v,u){return u==='Celsius'?v:u==='Fahrenheit'?(v-32)*5/9:v-273.15;}
+function fromC(c,u){return u==='Celsius'?c:u==='Fahrenheit'?c*9/5+32:c+273.15;}
+function calcTemp(){
+  const v=parseFloat(document.getElementById('t_val').value);
+  const f=document.getElementById('t_from').value, t=document.getElementById('t_to').value;
+  if(isNaN(v)){document.getElementById('t_out').textContent='Enter a number';return;}
+  const r=fromC(toC(v,f),t);
+  document.getElementById('t_out').innerHTML=`${v} ${f} = <b>${round(r)} ${t}</b>`;
+}
+
+/* ---------- currency (fixed indicative rates, base USD) ---------- */
+const RATES={USD:1,INR:83.2,EUR:0.92,GBP:0.79,JPY:156.5};
+function calcCurr(){
+  const v=parseFloat(document.getElementById('c_val').value);
+  const f=document.getElementById('c_from').value, t=document.getElementById('c_to').value;
+  if(isNaN(v)){document.getElementById('c_out').textContent='Enter an amount';return;}
+  const usd=v/RATES[f], r=usd*RATES[t];
+  document.getElementById('c_out').innerHTML=`${v} ${f} = <b>${round(r)} ${t}</b>`;
+}
+
+/* ---------- units ---------- */
+const UNITS={
+  Length:{m:1,cm:0.01,mm:0.001,km:1000,inch:0.0254,ft:0.3048,mile:1609.34},
+  Mass:{kg:1,g:0.001,mg:0.000001,lb:0.453592,oz:0.0283495},
+  Time:{sec:1,min:60,hr:3600,day:86400}
+};
+function buildUnits(){
+  const cat=document.getElementById('u_cat').value, keys=Object.keys(UNITS[cat]);
+  const from=document.getElementById('u_from'), to=document.getElementById('u_to');
+  from.innerHTML=to.innerHTML='';
+  keys.forEach(k=>{from.add(new Option(k,k));to.add(new Option(k,k));});
+  to.selectedIndex=Math.min(1,keys.length-1);
+  calcUnit();
+}
+function calcUnit(){
+  const cat=document.getElementById('u_cat').value;
+  const v=parseFloat(document.getElementById('u_val').value);
+  const f=document.getElementById('u_from').value, t=document.getElementById('u_to').value;
+  if(isNaN(v)){document.getElementById('u_out').textContent='Enter a value';return;}
+  const r=v*UNITS[cat][f]/UNITS[cat][t];
+  document.getElementById('u_out').innerHTML=`${v} ${f} = <b>${round(r)} ${t}</b>`;
+}
+
+/* ---------- scientific (safe expression evaluator) ---------- */
+function ins(s){const e=document.getElementById('s_expr');e.value+=s;e.focus();calcSci();}
+function clearSci(){document.getElementById('s_expr').value='';document.getElementById('s_out').textContent='—';}
+function backSci(){const e=document.getElementById('s_expr');e.value=e.value.slice(0,-1);calcSci();}
+function calcSci(){
+  let raw=document.getElementById('s_expr').value.trim();
+  const out=document.getElementById('s_out');
+  if(!raw){out.textContent='—';return;}
+  // whitelist: digits, operators, parens, dot, and known tokens only
+  if(/[a-z]/i.test(raw.replace(/asin|acos|atan|sqrt|sin|cos|tan|log|ln|abs|pow|pi|e/g,''))){
+    out.textContent='Invalid characters';return;
+  }
+  const D=Math.PI/180;
+  // build a degree-aware, Math-scoped expression
+  let expr=raw.replace(/\^/g,'**')
+    .replace(/\bpi\b/g,'Math.PI').replace(/\be\b/g,'Math.E')
+    .replace(/\basin\(/g,'(180/Math.PI)*Math.asin(')
+    .replace(/\bacos\(/g,'(180/Math.PI)*Math.acos(')
+    .replace(/\batan\(/g,'(180/Math.PI)*Math.atan(')
+    .replace(/\bsin\(/g,'Math.sin(D*').replace(/\bcos\(/g,'Math.cos(D*').replace(/\btan\(/g,'Math.tan(D*')
+    .replace(/\bln\(/g,'Math.log(').replace(/\blog\(/g,'Math.log10(')
+    .replace(/\bsqrt\(/g,'Math.sqrt(').replace(/\babs\(/g,'Math.abs(').replace(/\bpow\(/g,'Math.pow(');
+  try{
+    const val=Function('D','"use strict";return ('+expr+')')(D);
+    out.innerHTML = (val===undefined||Number.isNaN(val)) ? 'Error' : `= <b>${round(val)}</b>`;
+  }catch(e){out.textContent='Error';}
+}
+
+function round(n){return Math.abs(n)>=1e6||(Math.abs(n)<1e-4&&n!==0)?n.toExponential(4):Math.round(n*1e6)/1e6;}
+</script>
+</body>
+</html>
